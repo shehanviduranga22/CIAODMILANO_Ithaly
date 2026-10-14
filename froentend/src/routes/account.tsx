@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCommerce } from "@/components/storefront";
-import { money, products } from "@/lib/catalog";
+import { money } from "@/lib/catalog";
 import atelierImage from "@/assets/ciao-women.jpg";
 
 export const Route = createFileRoute("/account")({
@@ -82,7 +82,7 @@ type AccountOrder = {
 
 function Account() {
   const { redirectTo } = Route.useSearch();
-  const { completeSignIn, signOut } = useCommerce();
+  const { catalogProducts, completeSignIn, signOut } = useCommerce();
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [message, setMessage] = useState("");
@@ -443,7 +443,9 @@ function Account() {
                       </div>
                       <div className="mt-5 space-y-4">
                         {order.purchasedItems.map((item) => {
-                          const product = products.find((piece) => piece.id === item.productId);
+                          const product = catalogProducts.find(
+                            (piece) => piece.id === item.productId,
+                          );
                           return (
                             <div key={item.productId} className="flex items-center gap-4">
                               {product && (

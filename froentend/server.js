@@ -7,7 +7,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { createServer } from "node:http";
-import { MongoClient, MongoServerError } from "mongodb";
+import { MongoClient, MongoServerError, ObjectId } from "mongodb";
 
 const port = Number(process.env["PORT"] ?? 3001);
 const host = process.env["HOST"] ?? "127.0.0.1";
@@ -31,10 +31,11 @@ const orderProducts = new Map([
 ]);
 
 let accountCollectionPromise;
+let databasePromise;
 let mongoClient;
 
-function getAccountCollection() {
-  if (!accountCollectionPromise) {
+function getDatabase() {
+  if (!databasePromise) {
     const uri = process.env["MONGODB_URI"];
     if (!uri) {
       throw new Error("MONGODB_URI is not configured");
@@ -42,10 +43,21 @@ function getAccountCollection() {
 
     const client = new MongoClient(uri);
     mongoClient = client;
-    accountCollectionPromise = client
-      .connect()
-      .then(async () => {
-        const collection = client.db(databaseName).collection("account_details");
+    databasePromise = client.connect().catch((error) => {
+      mongoClient = undefined;
+      databasePromise = undefined;
+      throw error;
+    });
+  }
+
+  return databasePromise.then(() => mongoClient.db(databaseName));
+}
+
+function getAccountCollection() {
+  if (!accountCollectionPromise) {
+    accountCollectionPromise = getDatabase()
+      .then(async (database) => {
+        const collection = database.collection("account_details");
         await collection.createIndex({ email: 1 }, { unique: true });
         return collection;
       })
@@ -233,7 +245,7 @@ function validateOrder(order) {
     paymentMethod !== "card" ||
     !Array.isArray(items) ||
     items.length === 0 ||
-    items.length > orderProducts.size
+    items.length > 100
   ) {
     return false;
   }
@@ -256,7 +268,9 @@ function validateOrder(order) {
     if (typeof item !== "object" || item === null || Array.isArray(item)) return false;
     const product = orderProducts.get(item.productId);
     if (
-      !product ||
+      (!product &&
+        (typeof item.productId !== "string" ||
+          !/^(men|women|accessories):[a-f\d]{24}$/i.test(item.productId))) ||
       seenProducts.has(item.productId) ||
       !Number.isSafeInteger(item.quantity) ||
       item.quantity < 1 ||
@@ -297,16 +311,40 @@ async function createOrder(request, response) {
       return;
     }
 
-    const items = order.items.map(({ productId, quantity }) => {
-      const product = orderProducts.get(productId);
-      return {
-        productId,
-        name: product.name,
-        unitPrice: product.price,
-        quantity,
-        lineTotal: product.price * quantity,
-      };
-    });
+    const items = await Promise.all(
+      order.items.map(async ({ productId, quantity }) => {
+        let product = orderProducts.get(productId);
+        if (!product) {
+          const [, matchedLine, id] =
+            productId.match(/^(men|women|accessories):([a-f\d]{24})$/i) ?? [];
+          if (!matchedLine || !id) {
+            throw Object.assign(new Error("Invalid product identifier"), { statusCode: 400 });
+          }
+          const record = await (
+            await getDatabase()
+          )
+            .collection(`${matchedLine.toLowerCase()}_items`)
+            .findOne({ _id: new ObjectId(id) }, { projection: { name: 1, price: 1 } });
+          if (
+            !record ||
+            typeof record.name !== "string" ||
+            typeof record.price !== "number" ||
+            !Number.isFinite(record.price) ||
+            record.price <= 0
+          ) {
+            throw Object.assign(new Error("Product is no longer available"), { statusCode: 400 });
+          }
+          product = { name: record.name, price: record.price };
+        }
+        return {
+          productId,
+          name: product.name,
+          unitPrice: product.price,
+          quantity,
+          lineTotal: product.price * quantity,
+        };
+      }),
+    );
     const totalAmount = items.reduce((total, item) => total + item.lineTotal, 0);
     const orderCollection = mongoClient.db(databaseName).collection("order_details");
     const result = await orderCollection.insertOne({
@@ -329,6 +367,10 @@ async function createOrder(request, response) {
 
     sendJson(response, 201, { status: "saved", orderId: result.insertedId.toString() });
   } catch (error) {
+    if (error?.statusCode === 400) {
+      sendJson(response, 400, { status: "invalid_order" });
+      return;
+    }
     console.error("Could not save order details", error);
     sendJson(response, 500, { status: "internal_error" });
   }
@@ -504,14 +546,48 @@ async function createAccount(request, response) {
 
 const server = createServer(async (request, response) => {
   const pathname = (request.url ?? "").split("?")[0];
+  const storefrontCollection = pathname.match(/^\/api\/storefront\/(men|women|accessories)$/)?.[1];
   if (
     pathname !== "/api/account" &&
     pathname !== "/api/account/login" &&
     pathname !== "/api/account/logout" &&
     pathname !== "/api/account/session" &&
-    pathname !== "/api/orders"
+    pathname !== "/api/orders" &&
+    !storefrontCollection
   ) {
     sendJson(response, 404, { status: "not_found" });
+    return;
+  }
+  if (storefrontCollection) {
+    if (request.method !== "GET") {
+      response.setHeader("allow", "GET");
+      sendJson(response, 405, { status: "method_not_allowed" });
+      return;
+    }
+
+    try {
+      const collectionName = `${storefrontCollection}_items`;
+      const items = await (
+        await getDatabase()
+      )
+        .collection(collectionName)
+        .find({})
+        .sort({ createdAt: -1, _id: -1 })
+        .toArray();
+      sendJson(response, 200, {
+        items: items.map(({ _id, name, price, category, design, image }) => ({
+          id: _id.toString(),
+          name,
+          price,
+          category,
+          description: design,
+          image,
+        })),
+      });
+    } catch (error) {
+      console.error(`Could not load ${storefrontCollection} collection`, error);
+      sendJson(response, 500, { error: "Unable to load collection items." });
+    }
     return;
   }
   if (pathname === "/api/orders") {

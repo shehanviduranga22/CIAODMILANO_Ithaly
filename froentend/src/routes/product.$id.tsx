@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Heart, Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -10,6 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { ProductCard, useCommerce } from "@/components/storefront";
 import { money, products } from "@/lib/catalog";
+
+type CollectionLine = "men" | "women" | "accessories";
+
+function collectionLineForId(id: string): CollectionLine | null {
+  if (id.startsWith("men:")) return "men";
+  if (id.startsWith("women:")) return "women";
+  if (id.startsWith("accessories:")) return "accessories";
+  return null;
+}
 
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
@@ -31,16 +40,42 @@ export const Route = createFileRoute("/product/$id")({
 });
 function ProductPage() {
   const { id } = Route.useParams();
-  const p = products.find((x) => x.id === id);
-  const { add, buyNow, toggleWish, wishlist } = useCommerce();
+  const line = collectionLineForId(id);
+  const { add, buyNow, catalogProducts, collectionStates, loadCollection, toggleWish, wishlist } =
+    useCommerce();
+  const p = catalogProducts.find((x) => x.id === id);
   const [size, setSize] = useState("M");
   const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    if (line) void loadCollection(line);
+  }, [line, loadCollection]);
+
+  if (
+    !p &&
+    line &&
+    (collectionStates[line].loading || !collectionStates[line].loaded) &&
+    !collectionStates[line].error
+  ) {
+    return (
+      <section className="flex min-h-[60vh] items-center justify-center px-6 text-center">
+        <p className="text-sm text-stone" role="status">
+          Loading piece…
+        </p>
+      </section>
+    );
+  }
+
   if (!p)
     return (
       <section className="flex min-h-[60vh] items-center justify-center px-6 text-center">
         <div>
           <h1 className="font-serif text-5xl">Piece Not Found</h1>
-          <p className="mt-4 text-sm text-stone">This piece is no longer available.</p>
+          <p className="mt-4 text-sm text-stone" role={line ? "alert" : undefined}>
+            {line && collectionStates[line].error
+              ? collectionStates[line].error
+              : "This piece is no longer available."}
+          </p>
         </div>
       </section>
     );
@@ -152,7 +187,7 @@ function ProductPage() {
       <section className="mx-auto max-w-[1440px] px-4 pb-24 sm:px-6 lg:px-10">
         <h2 className="mb-10 font-serif text-4xl">You May Also Like</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
-          {products
+          {catalogProducts
             .filter((x) => x.id !== p.id)
             .slice(0, 4)
             .map((x) => (

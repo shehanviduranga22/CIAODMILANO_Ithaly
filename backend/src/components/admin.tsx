@@ -2,10 +2,17 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowDownRight, ImagePlus, LayoutGrid, ShoppingBag, Users, Shirt, Gem, LogOut, Plus, X, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import s1 from "@/assets/slide1.jpg";
 import s2 from "@/assets/slide2.jpg";
 import s3 from "@/assets/slide3.jpg";
 import { AUTH_KEY, CATEGORIES, LINE_LABEL, eur, isAuthed, notifyItemSaved, type Item, type Line } from "@/lib/store";
+
+const SIZE_OPTIONS: Record<Line, string[]> = {
+  men: ["XS", "S", "M", "L", "XL", "XXL", "39", "40", "41", "42", "43", "44", "45", "46", "One Size"],
+  women: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "34", "36", "38", "40", "42", "44", "46", "48", "One Size"],
+  accessories: ["One Size", "XS", "S", "M", "L", "XL"],
+};
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutGrid },
@@ -150,7 +157,24 @@ export function AddItemDialog({
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const selectedSizes = f.sizes
+    .split(",")
+    .map((size) => size.trim())
+    .filter(Boolean);
+  const sizeOptions = [...new Set([...SIZE_OPTIONS[line], ...selectedSizes])];
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const toggleSize = (size: string, checked: boolean) => {
+    setF((current) => {
+      const currentSizes = current.sizes
+        .split(",")
+        .map((currentSize) => currentSize.trim())
+        .filter(Boolean);
+      const sizes = checked
+        ? [...currentSizes.filter((currentSize) => currentSize !== size), size]
+        : currentSizes.filter((currentSize) => currentSize !== size);
+      return { ...current, sizes: sizes.join(", ") };
+    });
+  };
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handleKey);
@@ -233,10 +257,22 @@ export function AddItemDialog({
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { pickImage(e.target.files?.[0]); e.target.value = ""; }} />
           </div>
           <label className="block"><span className="eyebrow">Item name</span><input autoFocus className="field" value={f.name} onChange={set("name")} /></label>
-          <div className="grid grid-cols-2 gap-6">
-            <label className="block"><span className="eyebrow">Price (€)</span><input type="number" min="0" step="any" className="field" value={f.price} onChange={set("price")} /></label>
-            <label className="block"><span className="eyebrow">Available sizes</span><input className="field" placeholder="S, M, L" value={f.sizes} onChange={set("sizes")} /></label>
-          </div>
+          <label className="block"><span className="eyebrow">Price (€)</span><input type="number" min="0" step="any" className="field" value={f.price} onChange={set("price")} /></label>
+          <fieldset>
+            <legend className="eyebrow">Available sizes</legend>
+            <p className="mt-2 text-xs text-muted-foreground">Select all that apply.</p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {sizeOptions.map((size) => (
+                <label key={size} className="flex cursor-pointer items-center gap-2 text-xs">
+                  <Checkbox
+                    checked={selectedSizes.includes(size)}
+                    onCheckedChange={(checked) => toggleSize(size, checked === true)}
+                  />
+                  {size}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label className="block"><span className="eyebrow">Design text</span><textarea rows={2} className="field resize-none" value={f.design} onChange={set("design")} /></label>
           <div><span className="eyebrow">Category</span><div className="mt-3 flex flex-wrap gap-2">{cats.map((c) => <Button type="button" size="sm" variant={f.category === c ? "atelier" : "editorial"} key={c} aria-pressed={f.category === c} onClick={() => setF({ ...f, category: c })}>{c}</Button>)}</div></div>
         </div>

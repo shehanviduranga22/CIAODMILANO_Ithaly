@@ -28,6 +28,46 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { imagery, money, products, type Product } from "@/lib/catalog";
+import megaAccessories from "@/assets/mega_accessories.png";
+import megaCollection from "@/assets/mega_collection.png";
+import megaMen from "@/assets/mega_men.png";
+import megaNewArrivels from "@/assets/mega_newarrivels.png";
+import megaWomen from "@/assets/mega_women.png";
+
+type CollectionLine = "men" | "women" | "accessories";
+
+type CollectionItem = {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  description?: string;
+  image?: string | null;
+};
+
+function isCollectionItem(item: unknown): item is CollectionItem {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "id" in item &&
+    typeof item.id === "string" &&
+    "name" in item &&
+    typeof item.name === "string" &&
+    "price" in item &&
+    typeof item.price === "number" &&
+    Number.isFinite(item.price) &&
+    "category" in item &&
+    typeof item.category === "string" &&
+    (!("description" in item) || typeof item.description === "string") &&
+    (!("image" in item) || typeof item.image === "string" || item.image === null)
+  );
+}
+
+const collectionDefaults: Record<CollectionLine, { label: string; image: string }> = {
+  men: { label: "Men", image: imagery.men },
+  women: { label: "Women", image: imagery.women },
+  accessories: { label: "Accessories", image: imagery.stillLife },
+};
 
 type PendingCommerceAction =
   | { type: "add"; productId: string; quantity: number }
@@ -36,6 +76,12 @@ type PendingCommerceAction =
 type Commerce = {
   cart: Record<string, number>;
   wishlist: string[];
+  catalogProducts: Product[];
+  collectionStates: Record<
+    CollectionLine,
+    { loaded: boolean; loading: boolean; error: string | null }
+  >;
+  loadCollection: (line: CollectionLine) => Promise<void>;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
   add: (id: string, quantity?: number) => void;
@@ -64,11 +110,94 @@ type MegaLink =
 export function CommerceProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [databaseProducts, setDatabaseProducts] = useState<Product[]>([]);
+  const [collectionStates, setCollectionStates] = useState<
+    Record<CollectionLine, { loaded: boolean; loading: boolean; error: string | null }>
+  >({
+    men: { loaded: false, loading: false, error: null },
+    women: { loaded: false, loading: false, error: null },
+    accessories: { loaded: false, loading: false, error: null },
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const pendingAction = useRef<PendingCommerceAction | null>(null);
+  const loadedCollections = useRef(new Set<CollectionLine>());
+  const collectionRequests = useRef<Partial<Record<CollectionLine, Promise<void>>>>({});
   const navigate = useNavigate();
   const location = useRouterState({ select: (state) => state.location });
+
+  const loadCollection = useCallback((line: CollectionLine) => {
+    if (loadedCollections.current.has(line)) return Promise.resolve();
+    const existingRequest = collectionRequests.current[line];
+    if (existingRequest) return existingRequest;
+
+    setCollectionStates((current) => ({
+      ...current,
+      [line]: { loaded: false, loading: true, error: null },
+    }));
+
+    const request = (async () => {
+      try {
+        const response = await fetch(`/api/storefront/${line}`);
+        const result: unknown = await response.json();
+        if (!response.ok) {
+          const message =
+            typeof result === "object" &&
+            result !== null &&
+            "error" in result &&
+            typeof result.error === "string"
+              ? result.error
+              : `Unable to load collection items (status ${response.status}).`;
+          throw new Error(message);
+        }
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          !("items" in result) ||
+          !Array.isArray(result.items)
+        ) {
+          throw new Error("The collection response is invalid.");
+        }
+
+        const collection = collectionDefaults[line];
+        const loadedItems = result.items.map((value: unknown) => {
+          if (!isCollectionItem(value)) {
+            throw new Error("The collection contains an invalid item.");
+          }
+          return {
+            id: `${line}:${value.id}`,
+            name: value.name,
+            category: `${collection.label} · ${value.category}`,
+            price: value.price,
+            image: value.image || collection.image,
+            description: value.description || "",
+          };
+        });
+        setDatabaseProducts((current) => [
+          ...current.filter((product) => !product.id.startsWith(`${line}:`)),
+          ...loadedItems,
+        ]);
+        loadedCollections.current.add(line);
+        setCollectionStates((current) => ({
+          ...current,
+          [line]: { loaded: true, loading: false, error: null },
+        }));
+      } catch (error) {
+        setCollectionStates((current) => ({
+          ...current,
+          [line]: {
+            loaded: false,
+            loading: false,
+            error: error instanceof Error ? error.message : "Unable to load collection items.",
+          },
+        }));
+      } finally {
+        delete collectionRequests.current[line];
+      }
+    })();
+    collectionRequests.current[line] = request;
+    return request;
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -179,6 +308,9 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
     () => ({
       cart,
       wishlist,
+      catalogProducts: [...products, ...databaseProducts],
+      collectionStates,
+      loadCollection,
       isAuthenticated,
       isAuthLoading,
       add,
@@ -202,6 +334,9 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
     [
       cart,
       wishlist,
+      databaseProducts,
+      collectionStates,
+      loadCollection,
       isAuthenticated,
       isAuthLoading,
       add,
@@ -224,7 +359,7 @@ const megaNav = [
   {
     label: "Men",
     to: "/men",
-    image: imagery.men,
+    image: megaMen,
     imageAlt: "CIAO D MILANO menswear campaign",
     feature: "The Modern Milanese",
     copy: "Precise tailoring, fine knitwear and enduring leather.",
@@ -251,7 +386,7 @@ const megaNav = [
   {
     label: "Women",
     to: "/women",
-    image: imagery.women,
+    image: megaWomen,
     imageAlt: "CIAO D MILANO womenswear campaign",
     feature: "The Woman of Milan",
     copy: "Fluid silk, sculptural tailoring and considered essentials.",
@@ -278,7 +413,7 @@ const megaNav = [
   {
     label: "New Arrivals",
     to: "/new-arrivals",
-    image: imagery.hero,
+    image: megaNewArrivels,
     imageAlt: "The latest CIAO D MILANO collection",
     feature: "The New Collection",
     copy: "A considered edit for the season ahead.",
@@ -305,7 +440,7 @@ const megaNav = [
   {
     label: "Accessories",
     to: "/accessories",
-    image: imagery.stillLife,
+    image: megaAccessories,
     imageAlt: "Italian leather accessories and silk",
     feature: "Finishing Touches",
     copy: "Objects of quiet distinction, made by specialist hands.",
@@ -332,7 +467,7 @@ const megaNav = [
   {
     label: "Collections",
     to: "/collections",
-    image: imagery.hero,
+    image: megaCollection,
     imageAlt: "CIAO D MILANO seasonal collection in Milan",
     feature: "The House Edit",
     copy: "Stories of material, proportion and Italian craft.",
@@ -869,7 +1004,17 @@ export type EditorialSlide = {
   alt: string;
 };
 
-export function EditorialSlideshow({ slides, label }: { slides: EditorialSlide[]; label: string }) {
+export function EditorialSlideshow({
+  slides,
+  label,
+  action,
+  align = "center",
+}: {
+  slides: EditorialSlide[];
+  label: string;
+  action?: ReactNode;
+  align?: "center" | "left";
+}) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
 
@@ -913,8 +1058,13 @@ export function EditorialSlideshow({ slides, label }: { slides: EditorialSlide[]
           <div className="absolute inset-0 bg-gradient-to-b from-ink-deep/35 via-ink-deep/40 to-ink-deep/75" />
         </div>
       ))}
-      <div className="relative z-10 mx-auto flex min-h-[430px] max-w-[1440px] flex-col items-center justify-center px-6 py-20 text-center sm:min-h-[510px] lg:min-h-[600px] lg:px-10">
-        <div key={active} className="editorial-rise flex max-w-3xl flex-col items-center">
+      <div
+        className={`relative z-10 mx-auto flex min-h-[430px] max-w-[1440px] flex-col justify-center px-6 py-20 sm:min-h-[510px] lg:min-h-[600px] lg:px-10 ${align === "left" ? "items-start text-left" : "items-center text-center"}`}
+      >
+        <div
+          key={active}
+          className={`editorial-rise flex max-w-3xl flex-col ${align === "left" ? "items-start" : "items-center"}`}
+        >
           <p className="text-[10px] uppercase tracking-[0.24em] text-paper/80">
             CIAO D MILANO · {currentSlide.eyebrow}
           </p>
@@ -925,6 +1075,7 @@ export function EditorialSlideshow({ slides, label }: { slides: EditorialSlide[]
           <p className="mt-5 max-w-xl text-xs leading-6 text-paper/80 sm:text-sm">
             {currentSlide.copy}
           </p>
+          {action}
         </div>
       </div>
       <div className="absolute inset-x-0 bottom-0 z-20 mx-auto flex max-w-[1440px] items-center justify-between px-4 pb-5 sm:px-6 sm:pb-7 lg:px-10">
@@ -1070,6 +1221,103 @@ export function CollectionGrid({
         </div>
       )}
     </section>
+  );
+}
+
+export function DatabaseCollectionGrid({
+  line,
+  fittingRoom = false,
+}: {
+  line: CollectionLine;
+  fittingRoom?: boolean;
+}) {
+  const { catalogProducts, collectionStates, loadCollection } = useCommerce();
+  const state = collectionStates[line];
+  const items = catalogProducts.filter((product) => product.id.startsWith(`${line}:`));
+
+  useEffect(() => {
+    void loadCollection(line);
+  }, [line, loadCollection]);
+
+  if (state.loading || (!state.loaded && !state.error)) {
+    return (
+      <section className="mx-auto max-w-[1440px] px-4 pb-24 sm:px-6 lg:px-10">
+        <div className="border-y border-border py-10 text-center text-sm text-stone" role="status">
+          Loading collection…
+        </div>
+      </section>
+    );
+  }
+
+  if (state.error) {
+    return (
+      <section className="mx-auto max-w-[1440px] px-4 pb-24 sm:px-6 lg:px-10">
+        <div className="border-y border-border py-10 text-center text-sm text-stone" role="alert">
+          <p>{state.error}</p>
+          <Button variant="outline" className="mt-4" onClick={() => void loadCollection(line)}>
+            Try again
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  return <CollectionGrid items={items} fittingRoom={fittingRoom} />;
+}
+
+export function DatabaseSelectionGrid({
+  collections,
+  fittingRoom = false,
+  showFilters = false,
+}: {
+  collections: { line: CollectionLine; limit: number }[];
+  fittingRoom?: boolean;
+  showFilters?: boolean;
+}) {
+  const { catalogProducts, collectionStates, loadCollection } = useCommerce();
+
+  useEffect(() => {
+    void Promise.all(collections.map(({ line }) => loadCollection(line)));
+  }, [collections, loadCollection]);
+
+  const failedCollections = collections.filter(({ line }) => collectionStates[line].error);
+  if (failedCollections.length > 0) {
+    return (
+      <div className="border-y border-border py-10 text-center text-sm text-stone" role="alert">
+        <p>{failedCollections.map(({ line }) => collectionStates[line].error).join(" ")}</p>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => {
+            void Promise.all(failedCollections.map(({ line }) => loadCollection(line)));
+          }}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  if (collections.some(({ line }) => !collectionStates[line].loaded)) {
+    return (
+      <div className="border-y border-border py-10 text-center text-sm text-stone" role="status">
+        Loading collection…
+      </div>
+    );
+  }
+
+  const items = collections.flatMap(({ line, limit }) =>
+    catalogProducts.filter((product) => product.id.startsWith(`${line}:`)).slice(0, limit),
+  );
+
+  if (showFilters) return <CollectionGrid items={items} fittingRoom={fittingRoom} />;
+
+  return (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4 md:gap-6">
+      {items.map((product) => (
+        <ProductCard key={product.id} product={product} fittingRoom={fittingRoom} />
+      ))}
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { money, products } from "@/lib/catalog";
+import { money } from "@/lib/catalog";
 import { useCommerce } from "@/components/storefront";
 
 export const Route = createFileRoute("/payment")({
@@ -37,7 +37,7 @@ type CheckoutDetails = {
 };
 
 function Payment() {
-  const { cart, isAuthenticated, isAuthLoading } = useCommerce();
+  const { cart, catalogProducts, isAuthenticated, isAuthLoading } = useCommerce();
   const navigate = useNavigate();
   const [num, setNum] = useState("");
   const [name, setName] = useState("");
@@ -48,7 +48,7 @@ function Payment() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [checkoutDetails, setCheckoutDetails] = useState<CheckoutDetails | null>(null);
-  const lines = products.filter((p) => cart[p.id]);
+  const lines = catalogProducts.filter((p) => cart[p.id]);
   const total = lines.reduce((s, p) => s + p.price * (cart[p.id] ?? 0), 0);
 
   useEffect(() => {

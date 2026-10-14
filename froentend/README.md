@@ -14,6 +14,9 @@ For local development, run `npm run dev` to start both the account API on port
 the API, use `npm run dev:account-api`. In production, run the API as a Node
 service (set `HOST=0.0.0.0` when the service runs in a container) and configure
 the website's same-origin `/api` route to proxy to that service.
+The Men, Women, and Accessories storefront pages load their items from the
+`men_items`, `women_items`, and `accessories_items` collections through
+`GET /api/storefront/{men|women|accessories}`.
 
 Passwords are stored as salted scrypt hashes, never as plain text. MongoDB
 credentials must remain in environment variables and must not be committed.

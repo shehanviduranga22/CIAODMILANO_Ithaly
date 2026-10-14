@@ -3,7 +3,7 @@ import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCommerce } from "@/components/storefront";
-import { money, products } from "@/lib/catalog";
+import { money } from "@/lib/catalog";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -20,9 +20,9 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function Checkout() {
-  const { cart, isAuthenticated, isAuthLoading } = useCommerce();
+  const { cart, catalogProducts, isAuthenticated, isAuthLoading } = useCommerce();
   const navigate = useNavigate();
-  const lines = products.filter((product) => cart[product.id]);
+  const lines = catalogProducts.filter((product) => cart[product.id]);
   const total = lines.reduce((sum, product) => sum + product.price * (cart[product.id] ?? 0), 0);
 
   useEffect(() => {
