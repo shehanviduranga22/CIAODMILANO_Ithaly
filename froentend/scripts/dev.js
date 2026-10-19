@@ -1,9 +1,6 @@
 import { spawn } from "node:child_process";
 
-const services = [
-  ["account API", ["server.js"]],
-  ["storefront", ["node_modules/vite/bin/vite.js", "dev"]],
-];
+const services = [["storefront", ["node_modules/vite/bin/vite.js", "dev"]]];
 
 let isStopping = false;
 let exitCode = 0;

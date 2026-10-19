@@ -5,19 +5,29 @@
 //     React/TanStack dedupe, error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { handleRequest } from "./server.js";
 
 export default defineConfig({
   nitro: {
     serverEntry: false,
   },
   vite: {
-    server: {
-      proxy: {
-        "/api": {
-          target: "http://127.0.0.1:3001",
+    plugins: [
+      {
+        name: "root-server-api",
+        configureServer(server) {
+          server.middlewares.use((request, response, next) => {
+            const pathname = request.url?.split("?")[0];
+            if (pathname !== "/api" && !pathname?.startsWith("/api/")) {
+              next();
+              return;
+            }
+
+            void handleRequest(request, response).catch(next);
+          });
         },
       },
-    },
+    ],
   },
   tanstackStart: {
     // Resolve the app SSR entry to src/server.ts, separately from the root account API.

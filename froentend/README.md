@@ -9,13 +9,13 @@ checks account records in the MongoDB `account_details` collection. Copy
 password. The database defaults to `ciao_d_milano`; set `MONGODB_DATABASE` to
 use a different database.
 
-For local development, run `npm run dev` to start both the account API on port
-3001 and the storefront. Vite forwards `/api` requests to the API. To run only
-the API, use `npm run dev:account-api`. In production, deploy this directory
-with Vercel; its `/api/*` function forwards requests to the shared
-`handleRequest` export in `server.js`. The frontend uses same-origin `/api`
-requests, so no API base URL or production port is exposed. Set `MONGODB_URI`
-in the Vercel project's environment variables; `MONGODB_DATABASE` is optional.
+For local development, run `npm run dev` to start the storefront; Vite routes
+`/api` requests directly to the shared `handleRequest` export in `server.js`.
+To run the API as a standalone service, use `npm run dev:account-api`. In
+production, deploy this directory with Vercel; its `/api/*` function forwards
+requests to the same handler. The frontend uses same-origin `/api` requests, so
+no API base URL or production port is exposed. Set `MONGODB_URI` in the Vercel
+project's environment variables; `MONGODB_DATABASE` is optional.
 The Men, Women, and Accessories storefront pages load their items from the
 `men_items`, `women_items`, and `accessories_items` collections through
 `GET /api/storefront/{men|women|accessories}`.
