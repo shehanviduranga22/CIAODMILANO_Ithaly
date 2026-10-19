@@ -8,6 +8,7 @@ import {
 } from "node:crypto";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { MongoClient, MongoServerError, ObjectId } from "mongodb";
 
@@ -656,6 +657,35 @@ export async function handleRequest(request, response) {
   } else {
     await createAccount(request, response);
   }
+}
+
+export async function handleWebRequest(request) {
+  const incoming = request.body ? Readable.fromWeb(request.body) : Readable.from([]);
+  const requestUrl = new URL(request.url);
+  incoming.url = requestUrl.pathname + requestUrl.search;
+  incoming.method = request.method;
+  incoming.headers = Object.fromEntries(request.headers);
+
+  let statusCode = 200;
+  let responseBody = "";
+  const headers = new Headers();
+  const outgoing = {
+    setHeader(name, value) {
+      headers.set(name, value);
+    },
+    writeHead(code, values) {
+      statusCode = code;
+      for (const [name, value] of Object.entries(values)) {
+        headers.set(name, value);
+      }
+    },
+    end(body = "") {
+      responseBody = body;
+    },
+  };
+
+  await handleRequest(incoming, outgoing);
+  return new Response(responseBody, { status: statusCode, headers });
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
