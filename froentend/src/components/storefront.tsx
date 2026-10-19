@@ -27,7 +27,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { getApiStatus, readApiJson } from "@/lib/api";
 import { imagery, money, products, type Product } from "@/lib/catalog";
 import megaAccessories from "@/assets/mega_accessories.png";
 import megaCollection from "@/assets/mega_collection.png";
@@ -140,7 +139,7 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
     const request = (async () => {
       try {
         const response = await fetch(`/api/storefront/${line}`);
-        const result = await readApiJson(response);
+        const result: unknown = await response.json();
         if (!response.ok) {
           const message =
             typeof result === "object" &&
@@ -203,10 +202,12 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     fetch("/api/account/session")
-      .then(async (response) => {
+      .then((response) => {
         if (response.status === 401) return false;
         if (!response.ok) throw new Error(`Session check failed with status ${response.status}`);
-        return getApiStatus(await readApiJson(response)) === "authenticated";
+        return response
+          .json()
+          .then((result: { status?: string }) => result.status === "authenticated");
       })
       .then((authenticated) => {
         if (active) setIsAuthenticated(authenticated);
@@ -293,8 +294,8 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const response = await fetch("/api/account/logout", { method: "POST" });
-    const result = await readApiJson(response);
-    if (!response.ok || getApiStatus(result) !== "signed_out") {
+    const result: { status?: string } = await response.json();
+    if (!response.ok || result.status !== "signed_out") {
       throw new Error(`Sign out failed with status ${response.status}`);
     }
     setIsAuthenticated(false);

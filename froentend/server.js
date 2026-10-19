@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { MongoClient, MongoServerError, ObjectId } from "mongodb";
 
 const port = Number(process.env["PORT"] ?? 3001);
-const host = process.env["HOST"] ?? "0.0.0.0";
+const host = process.env["HOST"] ?? "127.0.0.1";
 const databaseName = process.env["MONGODB_DATABASE"] ?? "ciao_d_milano";
 const maxBodyBytes = 16 * 1024;
 const sessionCookieName = "cdm_session";

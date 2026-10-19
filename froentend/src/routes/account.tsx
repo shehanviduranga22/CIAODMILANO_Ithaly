@@ -4,7 +4,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCommerce } from "@/components/storefront";
-import { getApiStatus, readApiJson } from "@/lib/api";
 import { money } from "@/lib/catalog";
 import atelierImage from "@/assets/ciao-women.jpg";
 
@@ -81,61 +80,6 @@ type AccountOrder = {
   createdAt: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isAccountProfile(value: unknown): value is AccountProfile {
-  return (
-    isRecord(value) &&
-    typeof value["firstName"] === "string" &&
-    typeof value["lastName"] === "string" &&
-    typeof value["email"] === "string" &&
-    (value["createdAt"] === undefined || typeof value["createdAt"] === "string")
-  );
-}
-
-function isAccountSession(value: unknown): value is {
-  status?: string;
-  account?: AccountProfile;
-} {
-  return (
-    isRecord(value) &&
-    (value["status"] === undefined || typeof value["status"] === "string") &&
-    (value["account"] === undefined || isAccountProfile(value["account"]))
-  );
-}
-
-function isAccountOrder(value: unknown): value is AccountOrder {
-  return (
-    isRecord(value) &&
-    typeof value["id"] === "string" &&
-    Array.isArray(value["purchasedItems"]) &&
-    value["purchasedItems"].every(
-      (item) =>
-        isRecord(item) &&
-        typeof item["productId"] === "string" &&
-        typeof item["name"] === "string" &&
-        typeof item["unitPrice"] === "number" &&
-        typeof item["quantity"] === "number" &&
-        typeof item["lineTotal"] === "number",
-    ) &&
-    typeof value["totalAmount"] === "number" &&
-    typeof value["currency"] === "string" &&
-    typeof value["paymentMethod"] === "string" &&
-    typeof value["createdAt"] === "string"
-  );
-}
-
-function isOrderHistory(value: unknown): value is { status?: string; orders?: AccountOrder[] } {
-  return (
-    isRecord(value) &&
-    (value["status"] === undefined || typeof value["status"] === "string") &&
-    (value["orders"] === undefined ||
-      (Array.isArray(value["orders"]) && value["orders"].every(isAccountOrder)))
-  );
-}
-
 function Account() {
   const { redirectTo } = Route.useSearch();
   const { catalogProducts, completeSignIn, signOut } = useCommerce();
@@ -167,8 +111,8 @@ function Account() {
           throw new Error(`Account details request failed with status ${sessionResponse.status}`);
         }
 
-        const session = await readApiJson(sessionResponse);
-        if (!isAccountSession(session) || session.status !== "authenticated" || !session.account) {
+        const session: { status?: string; account?: AccountProfile } = await sessionResponse.json();
+        if (session.status !== "authenticated" || !session.account) {
           throw new Error("Account details response was incomplete");
         }
 
@@ -178,12 +122,9 @@ function Account() {
         if (!ordersResponse.ok) {
           throw new Error(`Order history request failed with status ${ordersResponse.status}`);
         }
-        const orderResult = await readApiJson(ordersResponse);
-        if (
-          !isOrderHistory(orderResult) ||
-          orderResult.status !== "ok" ||
-          !Array.isArray(orderResult.orders)
-        ) {
+        const orderResult: { status?: string; orders?: AccountOrder[] } =
+          await ordersResponse.json();
+        if (orderResult.status !== "ok" || !Array.isArray(orderResult.orders)) {
           throw new Error("Order history response was incomplete");
         }
 
@@ -252,9 +193,9 @@ function Account() {
             password: formData.get("password"),
           }),
         });
-        const result = await readApiJson(response);
+        const result: { status?: string } = await response.json();
 
-        if (response.ok && getApiStatus(result) === "authenticated") {
+        if (response.ok && result.status === "authenticated") {
           completeSignIn();
           setRefreshAccount((current) => current + 1);
           setMessage("Login Successful");
@@ -309,9 +250,9 @@ function Account() {
           confirmation,
         }),
       });
-      const result = await readApiJson(response);
+      const result: { status?: string } = await response.json();
 
-      if (response.ok && getApiStatus(result) === "created") {
+      if (response.ok && result.status === "created") {
         setMessage("Your account has been created.");
         setMessageType("success");
         form.reset();
@@ -319,7 +260,7 @@ function Account() {
       } else if (response.status === 409) {
         setMessage("An account with this email address already exists.");
         setMessageType("error");
-      } else if (response.status === 400 && getApiStatus(result) === "password_mismatch") {
+      } else if (response.status === 400 && result.status === "password_mismatch") {
         setMessage("Passwords do not match.");
         setMessageType("error");
       } else if (response.status === 400) {
