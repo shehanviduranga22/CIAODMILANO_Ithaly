@@ -3,20 +3,21 @@
 ## Account API
 
 Account registration and sign-in are handled by `server.js`, which saves and
-checks account records in the MongoDB `account_details` collection. Copy
-`.env.example` to `.env` and set
-`MONGODB_URI` to the MongoDB Atlas connection string with a rotated database
-password. The database defaults to `ciao_d_milano`; set `MONGODB_DATABASE` to
-use a different database.
+checks account records in the MongoDB `account_details` collection. Set
+`MONGODB_URI` to the MongoDB Atlas connection string in a local `.env` file or
+the deployment environment. The database defaults to `ciao_d_milano`; set
+`MONGODB_DATABASE` to use a different database.
 
-For local development, run `npm run dev` to start the storefront; Vite routes
-`/api` requests directly to the shared `handleRequest` export in `server.js`.
-To run the API as a standalone service, use `npm run dev:account-api`. In
-production, deploy this directory with Vercel; Nitro's Vercel preset packages
-the `/api/*` server route with the storefront. The frontend uses same-origin
-`/api` requests, so no API base URL or production port is exposed. Set
-`MONGODB_URI` in the Vercel project's environment variables;
-`MONGODB_DATABASE` is optional.
+For local development, run `npm run dev` to start the storefront and API routes
+in the same process. The storefront sends same-origin `/api` requests to the
+handler in the root `server.js`; no separate API service or port 3001 proxy is
+needed. To run only the API as a standalone Node service, use
+`npm run dev:account-api`.
+
+Deploy the `froentend` directory as the Vercel project's root directory. Its
+Nitro build serves the storefront and API from one Vercel project. Configure
+`MONGODB_URI` and, optionally, `MONGODB_DATABASE` in the Vercel project's
+environment variables for each deployment environment.
 The Men, Women, and Accessories storefront pages load their items from the
 `men_items`, `women_items`, and `accessories_items` collections through
 `GET /api/storefront/{men|women|accessories}`.

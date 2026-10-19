@@ -7,8 +7,8 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { createServer } from "node:http";
-import { resolve } from "node:path";
 import { Readable } from "node:stream";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MongoClient, MongoServerError, ObjectId } from "mongodb";
 
@@ -380,27 +380,6 @@ async function createOrder(request, response) {
 }
 
 function readJsonBody(request) {
-  if (request.body !== undefined) {
-    const body =
-      typeof request.body === "string" || Buffer.isBuffer(request.body)
-        ? request.body.toString()
-        : JSON.stringify(request.body);
-    if (Buffer.byteLength(body) > maxBodyBytes) {
-      return Promise.reject(
-        Object.assign(new Error("Request body too large"), { statusCode: 413 }),
-      );
-    }
-    try {
-      return Promise.resolve(
-        typeof request.body === "object" && !Buffer.isBuffer(request.body)
-          ? request.body
-          : JSON.parse(body),
-      );
-    } catch {
-      return Promise.reject(Object.assign(new Error("Invalid JSON body"), { statusCode: 400 }));
-    }
-  }
-
   return new Promise((resolve, reject) => {
     let body = "";
     let bodyTooLarge = false;

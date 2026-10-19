@@ -138,18 +138,8 @@ export function CommerceProvider({ children }: { children: ReactNode }) {
 
     const request = (async () => {
       try {
-        const endpoint = `/api/storefront/${line}`;
-        const response = await fetch(endpoint);
-        const body = await response.text();
-        let result: unknown;
-        try {
-          result = JSON.parse(body);
-        } catch {
-          const contentType = response.headers.get("content-type") ?? "unknown content type";
-          throw new Error(
-            `${endpoint} returned a non-JSON response (HTTP ${response.status}; ${contentType}).`,
-          );
-        }
+        const response = await fetch(`/api/storefront/${line}`);
+        const result: unknown = await response.json();
         if (!response.ok) {
           const message =
             typeof result === "object" &&
