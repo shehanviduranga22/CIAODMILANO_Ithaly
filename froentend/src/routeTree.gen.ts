@@ -24,7 +24,6 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as ShippingDeliveryRouteImport } from './routes/shipping-delivery'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as WomenRouteImport } from './routes/women'
-import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -102,11 +101,6 @@ const WomenRoute = WomenRouteImport.update({
   path: '/women',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiSplatRoute = ApiSplatRouteImport.update({
-  id: '/api/$',
-  path: '/api/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProductIdRoute = ProductIdRouteImport.update({
   id: '/product/$id',
   path: '/product/$id',
@@ -129,7 +123,6 @@ export interface FileRoutesByFullPath {
   '/shipping-delivery': typeof ShippingDeliveryRoute
   '/wishlist': typeof WishlistRoute
   '/women': typeof WomenRoute
-  '/api/$': typeof ApiSplatRoute
   '/product/$id': typeof ProductIdRoute
 }
 export interface FileRoutesByTo {
@@ -148,7 +141,6 @@ export interface FileRoutesByTo {
   '/shipping-delivery': typeof ShippingDeliveryRoute
   '/wishlist': typeof WishlistRoute
   '/women': typeof WomenRoute
-  '/api/$': typeof ApiSplatRoute
   '/product/$id': typeof ProductIdRoute
 }
 export interface FileRoutesById {
@@ -168,7 +160,6 @@ export interface FileRoutesById {
   '/shipping-delivery': typeof ShippingDeliveryRoute
   '/wishlist': typeof WishlistRoute
   '/women': typeof WomenRoute
-  '/api/$': typeof ApiSplatRoute
   '/product/$id': typeof ProductIdRoute
 }
 export interface FileRouteTypes {
@@ -189,7 +180,6 @@ export interface FileRouteTypes {
     | '/shipping-delivery'
     | '/wishlist'
     | '/women'
-    | '/api/$'
     | '/product/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -208,7 +198,6 @@ export interface FileRouteTypes {
     | '/shipping-delivery'
     | '/wishlist'
     | '/women'
-    | '/api/$'
     | '/product/$id'
   id:
     | '__root__'
@@ -227,7 +216,6 @@ export interface FileRouteTypes {
     | '/shipping-delivery'
     | '/wishlist'
     | '/women'
-    | '/api/$'
     | '/product/$id'
   fileRoutesById: FileRoutesById
 }
@@ -247,7 +235,6 @@ export interface RootRouteChildren {
   ShippingDeliveryRoute: typeof ShippingDeliveryRoute
   WishlistRoute: typeof WishlistRoute
   WomenRoute: typeof WomenRoute
-  ApiSplatRoute: typeof ApiSplatRoute
   ProductIdRoute: typeof ProductIdRoute
 }
 
@@ -358,13 +345,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WomenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/$': {
-      id: '/api/$'
-      path: '/api/$'
-      fullPath: '/api/$'
-      preLoaderRoute: typeof ApiSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/product/$id': {
       id: '/product/$id'
       path: '/product/$id'
@@ -391,7 +371,6 @@ const rootRouteChildren: RootRouteChildren = {
   ShippingDeliveryRoute: ShippingDeliveryRoute,
   WishlistRoute: WishlistRoute,
   WomenRoute: WomenRoute,
-  ApiSplatRoute: ApiSplatRoute,
   ProductIdRoute: ProductIdRoute,
 }
 export const routeTree = rootRouteImport

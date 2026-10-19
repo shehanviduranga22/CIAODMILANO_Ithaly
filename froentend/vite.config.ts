@@ -8,8 +8,16 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   nitro: {
-    preset: "vercel",
     serverEntry: false,
+  },
+  vite: {
+    server: {
+      proxy: {
+        "/api": {
+          target: "http://127.0.0.1:3001",
+        },
+      },
+    },
   },
   tanstackStart: {
     // Resolve the app SSR entry to src/server.ts, separately from the root account API.

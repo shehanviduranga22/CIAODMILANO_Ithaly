@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.js",
-    "dev:account-api": "node server.js",
+    "dev:account-api": "node backend/server.js",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
