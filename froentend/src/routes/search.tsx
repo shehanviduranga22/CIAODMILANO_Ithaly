@@ -24,6 +24,7 @@ function SearchPage() {
   const hits = catalogProducts.filter((p) =>
     (p.name + p.category).toLowerCase().includes(q.toLowerCase()),
   );
+  const visibleHits = q ? hits : hits.slice(12);
   useEffect(() => {
     void Promise.all([
       loadCollection("men"),
@@ -45,10 +46,10 @@ function SearchPage() {
         />
       </div>
       <p className="my-10 text-[10px] uppercase tracking-[0.16em] text-stone">
-        {q ? `${hits.length} results for “${q}”` : "All pieces"}
+        {q ? `${hits.length} results for “${q}”` : `${visibleHits.length} pieces`}
       </p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-        {hits.map((p) => (
+        {visibleHits.map((p) => (
           <ProductCard key={p.id} product={p} />
         ))}
       </div>

@@ -10,7 +10,7 @@ const MAX_BODY_BYTES = 2_000_000;
 const COLLECTIONS = {
   men: {
     name: "men_items",
-    categories: ["Tailoring", "Knitwear", "Footwear"],
+    categories: ["Tailoring", "Knitwear", "Footwear", "Shorts", "T-Shirts"],
   },
   women: {
     name: "women_items",

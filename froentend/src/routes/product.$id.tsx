@@ -20,6 +20,22 @@ function collectionLineForId(id: string): CollectionLine | null {
   return null;
 }
 
+function categorySimilarityRank(product: string, candidate: string): number {
+  const productCategories = product.split("·").map((category) => category.trim().toLowerCase());
+  const candidateCategories = candidate.split("·").map((category) => category.trim().toLowerCase());
+
+  if (productCategories.join("·") === candidateCategories.join("·")) return 0;
+  if (
+    productCategories.length > 1 &&
+    candidateCategories.length > 1 &&
+    productCategories.at(-1) === candidateCategories.at(-1)
+  ) {
+    return 1;
+  }
+  if (productCategories[0] === candidateCategories[0]) return 2;
+  return 3;
+}
+
 export const Route = createFileRoute("/product/$id")({
   head: ({ params }) => {
     const p = products.find((x) => x.id === params.id);
@@ -46,6 +62,24 @@ function ProductPage() {
   const p = catalogProducts.find((x) => x.id === id);
   const [size, setSize] = useState("M");
   const [qty, setQty] = useState(1);
+  const recommendations = p
+    ? catalogProducts
+        .filter((product) => product.id !== p.id)
+        .map((product, index) => ({
+          product,
+          index,
+          categoryRank: categorySimilarityRank(p.category, product.category),
+          priceDifference: Math.abs(p.price - product.price),
+        }))
+        .sort(
+          (a, b) =>
+            a.categoryRank - b.categoryRank ||
+            a.priceDifference - b.priceDifference ||
+            a.index - b.index,
+        )
+        .slice(0, 4)
+        .map(({ product }) => product)
+    : [];
 
   useEffect(() => {
     if (line) void loadCollection(line);
@@ -187,12 +221,9 @@ function ProductPage() {
       <section className="mx-auto max-w-[1440px] px-4 pb-24 sm:px-6 lg:px-10">
         <h2 className="mb-10 font-serif text-4xl">You May Also Like</h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-6">
-          {catalogProducts
-            .filter((x) => x.id !== p.id)
-            .slice(0, 4)
-            .map((x) => (
-              <ProductCard key={x.id} product={x} />
-            ))}
+          {recommendations.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
         </div>
       </section>
     </>

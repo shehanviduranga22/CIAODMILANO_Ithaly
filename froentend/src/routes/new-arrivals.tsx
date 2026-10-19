@@ -60,7 +60,12 @@ export const Route = createFileRoute("/new-arrivals")({
   component: () => (
     <>
       <EditorialSlideshow label="New arrival highlights" slides={slides} />
-      <DatabaseSelectionGrid collections={newArrivalCollections} fittingRoom showFilters />
+      <DatabaseSelectionGrid
+        collections={newArrivalCollections}
+        fittingRoom
+        showFilters
+        mixCollections
+      />
     </>
   ),
 });

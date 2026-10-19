@@ -47,8 +47,9 @@ const homeSlides: EditorialSlide[] = [
 ];
 
 const seasonEditCollections = [
-  { line: "men", limit: 2 },
-  { line: "women", limit: 2 },
+  { line: "men", limit: 3 },
+  { line: "women", limit: 3 },
+  { line: "accessories", limit: 2 },
 ] as const;
 
 export const Route = createFileRoute("/")({
@@ -105,7 +106,7 @@ function HomePage() {
             View All →
           </Link>
         </div>
-        <DatabaseSelectionGrid collections={seasonEditCollections} />
+        <DatabaseSelectionGrid collections={seasonEditCollections} mixCollections />
       </section>
       <section className="mx-auto grid max-w-[1440px] gap-6 px-4 pb-24 sm:px-6 md:grid-cols-12 lg:px-10">
         <Campaign

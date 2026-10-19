@@ -43,7 +43,7 @@ type CollectionResponse<T> = { items: T[]; total: number };
 type CollectionState<T> = CollectionResponse<T> & { loading: boolean; error: string | null };
 
 export const CATEGORIES: Record<Line, string[]> = {
-  men: ["Tailoring", "Knitwear", "Footwear"],
+  men: ["Tailoring", "Knitwear", "Footwear", "Shorts", "T-Shirts"],
   women: ["Outerwear", "Evening", "Tailoring", "Leather Goods", "Knitwear"],
   accessories: ["Silk", "Leather", "Cashmere"],
 };

@@ -371,6 +371,8 @@ const megaNav = [
           { label: "New Arrivals", to: "/new-arrivals" },
           { label: "Tailoring", to: "/men", category: "Tailoring" },
           { label: "Knitwear", to: "/men", category: "Knitwear" },
+          { label: "Shorts", to: "/men", category: "Shorts" },
+          { label: "T-Shirts", to: "/men", category: "T-Shirts" },
         ],
       },
       {
@@ -1055,7 +1057,7 @@ export function EditorialSlideshow({
             height={1024}
             className={`h-full w-full object-cover transition-transform duration-[6000ms] ease-out ${index === active ? "scale-[1.025]" : "scale-100"}`}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-ink-deep/35 via-ink-deep/40 to-ink-deep/75" />
+          <div className="absolute inset-0 bg-gradient-to-b from-ink-deep/30 via-ink-deep/35 to-ink-deep/70" />
         </div>
       ))}
       <div
@@ -1269,10 +1271,12 @@ export function DatabaseSelectionGrid({
   collections,
   fittingRoom = false,
   showFilters = false,
+  mixCollections = false,
 }: {
   collections: { line: CollectionLine; limit: number }[];
   fittingRoom?: boolean;
   showFilters?: boolean;
+  mixCollections?: boolean;
 }) {
   const { catalogProducts, collectionStates, loadCollection } = useCommerce();
 
@@ -1306,9 +1310,15 @@ export function DatabaseSelectionGrid({
     );
   }
 
-  const items = collections.flatMap(({ line, limit }) =>
+  const collectionItems = collections.map(({ line, limit }) =>
     catalogProducts.filter((product) => product.id.startsWith(`${line}:`)).slice(0, limit),
   );
+  const items = mixCollections
+    ? Array.from(
+        { length: Math.max(...collectionItems.map((items) => items.length)) },
+        (_, index) => collectionItems.flatMap((items) => (items[index] ? [items[index]] : [])),
+      ).flat()
+    : collectionItems.flat();
 
   if (showFilters) return <CollectionGrid items={items} fittingRoom={fittingRoom} />;
 
