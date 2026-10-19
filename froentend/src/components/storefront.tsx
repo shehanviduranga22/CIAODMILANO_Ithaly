@@ -69,6 +69,14 @@ const collectionDefaults: Record<CollectionLine, { label: string; image: string 
   accessories: { label: "Accessories", image: imagery.stillLife },
 };
 
+function getCollectionProducts(catalog: Product[], line: CollectionLine) {
+  const databaseItems = catalog.filter((product) => product.id.startsWith(`${line}:`));
+  if (databaseItems.length > 0) return databaseItems;
+
+  const categoryPrefix = `${collectionDefaults[line].label} ·`;
+  return catalog.filter((product) => product.category.startsWith(categoryPrefix));
+}
+
 type PendingCommerceAction =
   | { type: "add"; productId: string; quantity: number }
   | { type: "wishlist"; productId: string }
@@ -1235,7 +1243,7 @@ export function DatabaseCollectionGrid({
 }) {
   const { catalogProducts, collectionStates, loadCollection } = useCommerce();
   const state = collectionStates[line];
-  const items = catalogProducts.filter((product) => product.id.startsWith(`${line}:`));
+  const items = getCollectionProducts(catalogProducts, line);
 
   useEffect(() => {
     void loadCollection(line);
@@ -1311,7 +1319,7 @@ export function DatabaseSelectionGrid({
   }
 
   const collectionItems = collections.map(({ line, limit }) =>
-    catalogProducts.filter((product) => product.id.startsWith(`${line}:`)).slice(0, limit),
+    getCollectionProducts(catalogProducts, line).slice(0, limit),
   );
   const items = mixCollections
     ? Array.from(
