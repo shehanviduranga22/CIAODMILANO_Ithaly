@@ -1,4 +1,3 @@
-import dotenv from "dotenv";
 import {
   createHash,
   createHmac,
@@ -7,13 +6,14 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { createServer } from "node:http";
+import { config } from "dotenv";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MongoClient, MongoServerError, ObjectId } from "mongodb";
 
-const backendDirectory = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(backendDirectory, ".env") });
-dotenv.config({ path: resolve(backendDirectory, "..", ".env") });
+const serverDirectory = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(serverDirectory, ".env") });
+config({ path: resolve(serverDirectory, "..", ".env") });
 
 const port = Number(process.env["PORT"] ?? 3001);
 const host = process.env["HOST"] ?? "127.0.0.1";
@@ -641,8 +641,61 @@ export async function handleRequest(request, response) {
   }
 }
 
+export async function isAccountApiRunning() {
+  const probeHost = host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
+  let response;
+  try {
+    response = await fetch(`http://${probeHost}:${port}/api/account/session`, {
+      signal: AbortSignal.timeout(2000),
+    });
+  } catch (error) {
+    if (error.cause?.code === "ECONNREFUSED") return false;
+    throw new Error(`Could not check the Account API at ${probeHost}:${port}: ${error.message}`, {
+      cause: error,
+    });
+  }
+
+  let body;
+  try {
+    body = await response.json();
+  } catch (error) {
+    throw new Error(`Port ${port} is already in use by a service that is not the Account API.`, {
+      cause: error,
+    });
+  }
+
+  if (response.status === 401 && body?.status === "unauthenticated") return true;
+  throw new Error(
+    `Port ${port} is already in use by a service that is not the Account API. ` +
+      `Stop that service or set a different PORT in ${resolve(serverDirectory, ".env")}.`,
+  );
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  createServer(handleRequest).listen(port, host, () => {
-    console.log(`Account API listening on port ${port}`);
+  async function startServer() {
+    if (await isAccountApiRunning()) {
+      console.log(`Account API is already running on port ${port}; reusing it.`);
+      return;
+    }
+
+    const server = createServer(handleRequest);
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(
+          `Port ${port} is already in use. Stop the other service or set a different PORT in ${resolve(serverDirectory, ".env")}.`,
+        );
+      } else {
+        console.error("Could not start the Account API:", error);
+      }
+      process.exitCode = 1;
+    });
+    server.listen(port, host, () => {
+      console.log(`Account API listening on ${host}:${port}`);
+    });
+  }
+
+  startServer().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
   });
 }

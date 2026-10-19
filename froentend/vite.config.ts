@@ -6,13 +6,10 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-const nitroOptions = {
-  preset: "vercel",
-  serverDir: "server",
-};
-
 export default defineConfig({
-  nitro: nitroOptions,
+  nitro: {
+    serverEntry: false,
+  },
   vite: {
     server: {
       proxy: {
