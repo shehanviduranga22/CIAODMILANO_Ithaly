@@ -470,11 +470,4 @@ var require_dist = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	__require.main === module && Oe(process.argv.slice(2));
 }));
 //#endregion
-//#region node_modules/dotenv/dist/config.cjs
-var require_config = /* @__PURE__ */ __commonJSMin((() => {
-	var dotenv = require_dist();
-	var quiet = process.env.DOTENV_QUIET != null ? process.env.DOTENV_QUIET : process.env.DOTENV_CONFIG_QUIET;
-	dotenv.config({ quiet: quiet != null ? quiet : true });
-}));
-//#endregion
-export { require_config as t };
+export { require_dist as t };

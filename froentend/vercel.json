@@ -1,9 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://ciaodmilanoithaly-server.vercel.app/api/:path*"
-    }
-  ]
+  "buildCommand": "npm run build"
 }

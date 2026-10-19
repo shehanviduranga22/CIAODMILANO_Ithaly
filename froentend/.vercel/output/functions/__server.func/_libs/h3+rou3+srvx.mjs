@@ -784,4 +784,7 @@ function routeHandler(route) {
 	return data.middleware?.length ? data["~composed"] ??= composeHandler(data.middleware, data.handler) : data.handler;
 }
 //#endregion
-export { HTTPError as i, defineLazyEventHandler as n, toRequest as r, H3Core as t };
+//#region node_modules/h3/dist/h3.mjs
+var defineEventHandler = defineHandler;
+//#endregion
+export { HTTPError as a, toRequest as i, H3Core as n, defineLazyEventHandler as r, defineEventHandler as t };

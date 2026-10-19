@@ -17,16 +17,19 @@ service (set `HOST=0.0.0.0` when the service runs in a container).
 
 ## Vercel Deployment
 
-Deploy the `froentend` directory as the frontend Vercel project's root. Its
-`vercel.json` proxies `/api` requests to
-`https://ciaodmilanoithaly-server.vercel.app`, keeping API calls same-origin
-from the browser so account session cookies work.
+Deploy the `froentend` directory as one Vercel project root. `npm run build`
+uses Nitro's Vercel preset and publishes its `.vercel/output` Build Output API
+directory. The Nitro `serverDir` is set to `server`, which registers
+`server/routes/api/[...path].ts`; that route forwards `/api/*` requests to
+`backend/server.js`. Do not add an external `/api` rewrite or configure
+`froentend/backend` as this project's root: either would bypass the integrated
+API route.
 
-Deploy `froentend/backend` as a separate Vercel project using that directory
-as its root. The `backend/api/[...path].js` function serves the account API.
-Set `MONGODB_URI` in the backend Vercel project's environment variables (and
-optionally `MONGODB_DATABASE`); do not rely on a local `.env` file in a
-deployment. The frontend and backend URLs are configured in `vercel.json`.
+Set `MONGODB_URI` in this Vercel project's environment variables (and
+optionally `MONGODB_DATABASE`). Keep the project root set to `froentend`, use
+the Other framework preset if Vercel does not detect Nitro automatically, and
+set the build command to `npm run build`. Let Nitro provide the `.vercel/output`
+Build Output API directory; do not override it with a static output directory.
 
 The Men, Women, and Accessories storefront pages load their items from the
 `men_items`, `women_items`, and `accessories_items` collections through

@@ -1,5 +1,5 @@
 globalThis.__nitro_main__ = import.meta.url;
-import { i as HTTPError, n as defineLazyEventHandler, t as H3Core } from "./_libs/h3+rou3+srvx.mjs";
+import { a as HTTPError, n as H3Core, r as defineLazyEventHandler } from "./_libs/h3+rou3+srvx.mjs";
 import { r as NodeResponse } from "./_libs/h3-v2+rou3+srvx.mjs";
 //#region #nitro-vite-setup
 function lazyService(loader) {
@@ -39,18 +39,32 @@ var findRouteRules = /* @__PURE__ */ (() => {
 		return r;
 	};
 })();
+var _lazy_ZBq3dh = defineLazyEventHandler(() => import("./_...path_.mjs"));
 var _lazy_fofjeC = defineLazyEventHandler(() => import("./_chunks/ssr-renderer.mjs"));
 var findRoute = /* @__PURE__ */ (() => {
-	const data = {
+	const $0 = {
+		route: "/api/**:path",
+		handler: _lazy_ZBq3dh
+	}, $1 = {
 		route: "/**",
 		handler: _lazy_fofjeC
 	};
-	return ((_m, p) => {
+	return (m, p) => {
+		if (p.charCodeAt(p.length - 1) === 47) p = p.slice(0, -1) || "/";
+		let s = p.split("/"), l = s.length;
+		if (l > 1) {
+			if (s[1] === "api") {
+				if (l > 2) return {
+					data: $0,
+					params: { "path": s.slice(2).join("/") }
+				};
+			}
+		}
 		return {
-			data,
-			params: { "_": p.slice(1) }
+			data: $1,
+			params: { "_": s.slice(1).join("/") }
 		};
-	});
+	};
 })();
 [].filter(Boolean);
 //#endregion
