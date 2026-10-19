@@ -21,10 +21,33 @@ export const Route = createFileRoute("/search")({
 function SearchPage() {
   const [q, setQ] = useState("");
   const { catalogProducts, loadCollection } = useCommerce();
+  const departments = ["men", "women", "accessories"] as const;
   const hits = catalogProducts.filter((p) =>
     (p.name + p.category).toLowerCase().includes(q.toLowerCase()),
   );
-  const visibleHits = q ? hits : hits.slice(12);
+  const departmentHits = departments.map((department) =>
+    hits.filter(
+      (product) =>
+        product.id.startsWith(`${department}:`) ||
+        product.category.toLowerCase().startsWith(`${department} ·`),
+    ),
+  );
+  const mixedHits = Array.from(
+    { length: Math.max(0, ...departmentHits.map((items) => items.length)) },
+    (_, index) => departmentHits.flatMap((items) => (items[index] ? [items[index]] : [])),
+  )
+    .flat()
+    .concat(
+      hits.filter(
+        (product) =>
+          !departments.some(
+            (department) =>
+              product.id.startsWith(`${department}:`) ||
+              product.category.toLowerCase().startsWith(`${department} ·`),
+          ),
+      ),
+    );
+  const visibleHits = q ? mixedHits : mixedHits.slice(12);
   useEffect(() => {
     void Promise.all([
       loadCollection("men"),
@@ -46,7 +69,7 @@ function SearchPage() {
         />
       </div>
       <p className="my-10 text-[10px] uppercase tracking-[0.16em] text-stone">
-        {q ? `${hits.length} results for “${q}”` : `${visibleHits.length} pieces`}
+        {q ? `${mixedHits.length} results for “${q}”` : `${visibleHits.length} pieces`}
       </p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
         {visibleHits.map((p) => (
