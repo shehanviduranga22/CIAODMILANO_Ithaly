@@ -14,7 +14,11 @@ For local development, run `npm run dev` to start both the account API on port
 the API, use `npm run dev:account-api`. The API listens on all network
 interfaces by default for hosting platforms; set `HOST` to override this and
 `PORT` to use the port provided by the platform. In production, configure the
-website's same-origin `/api` route to proxy to the API service.
+website's `/api` routes to the Vercel function in `api/[...path].js`, which
+dispatches requests to `server.js`. Set `MONGODB_URI` and, optionally,
+`MONGODB_DATABASE` in the Vercel project's environment variables, and set the
+Vercel project root to this frontend directory. Keep the frontend's API calls
+same-origin; the Vite proxy to port 3001 is only for local development.
 The Men, Women, and Accessories storefront pages load their items from the
 `men_items`, `women_items`, and `accessories_items` collections through
 `GET /api/storefront/{men|women|accessories}`.
