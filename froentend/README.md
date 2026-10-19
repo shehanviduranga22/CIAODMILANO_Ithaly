@@ -3,22 +3,22 @@
 ## Account API
 
 Account registration and sign-in are handled by `server.js`, which saves and
-checks account records in the MongoDB `account_details` collection. Copy
-`.env.example` to `.env` and set
+checks account records in the MongoDB `account_details` collection. Set
 `MONGODB_URI` to the MongoDB Atlas connection string with a rotated database
-password. The database defaults to `ciao_d_milano`; set `MONGODB_DATABASE` to
-use a different database.
+password. The database defaults to `ciao_d_milano`; `MONGODB_DATABASE` is
+optional and can select a different database.
 
 For local development, run `npm run dev` to start both the account API on port
 3001 and the storefront. Vite forwards `/api` requests to the API. To run only
 the API, use `npm run dev:account-api`. The API listens on all network
 interfaces by default for hosting platforms; set `HOST` to override this and
-`PORT` to use the port provided by the platform. In production, configure the
-website's `/api` routes to the Vercel function in `api/[...path].js`, which
-dispatches requests to `server.js`. Set `MONGODB_URI` and, optionally,
-`MONGODB_DATABASE` in the Vercel project's environment variables, and set the
-Vercel project root to this frontend directory. Keep the frontend's API calls
-same-origin; the Vite proxy to port 3001 is only for local development.
+`PORT` to use the port provided by the platform. For Vercel, set the project
+root to this frontend directory. Vercel routes `/api/*` to the catch-all
+function in `api/[...path].js`, which dispatches requests to `server.js`.
+Configure `MONGODB_URI` (required) and optionally `MONGODB_DATABASE` in the
+Vercel project's environment variables. The frontend uses same-origin `/api`
+requests, so no API base URL variable is needed; the Vite proxy to port 3001
+is only for local development.
 The Men, Women, and Accessories storefront pages load their items from the
 `men_items`, `women_items`, and `accessories_items` collections through
 `GET /api/storefront/{men|women|accessories}`.

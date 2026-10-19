@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { money } from "@/lib/catalog";
 import { useCommerce } from "@/components/storefront";
+import { getApiStatus, readApiJson } from "@/lib/api";
 
 export const Route = createFileRoute("/payment")({
   head: () => ({
@@ -92,9 +93,9 @@ function Payment() {
           })),
         }),
       });
-      const result: { status?: string } = await response.json();
+      const result = await readApiJson(response);
 
-      if (response.status === 201 && result.status === "saved") {
+      if (response.status === 201 && getApiStatus(result) === "saved") {
         sessionStorage.removeItem("ciao-d-milano-checkout");
         setDone(true);
       } else if (response.status === 401) {
