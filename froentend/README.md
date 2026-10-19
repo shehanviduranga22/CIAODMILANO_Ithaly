@@ -11,9 +11,10 @@ use a different database.
 
 For local development, run `npm run dev` to start both the account API on port
 3001 and the storefront. Vite forwards `/api` requests to the API. To run only
-the API, use `npm run dev:account-api`. In production, run the API as a Node
-service (set `HOST=0.0.0.0` when the service runs in a container) and configure
-the website's same-origin `/api` route to proxy to that service.
+the API, use `npm run dev:account-api`. The API listens on all network
+interfaces by default for hosting platforms; set `HOST` to override this and
+`PORT` to use the port provided by the platform. In production, configure the
+website's same-origin `/api` route to proxy to the API service.
 The Men, Women, and Accessories storefront pages load their items from the
 `men_items`, `women_items`, and `accessories_items` collections through
 `GET /api/storefront/{men|women|accessories}`.
