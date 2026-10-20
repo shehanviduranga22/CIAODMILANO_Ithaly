@@ -1,4 +1,4 @@
-import { o as __toESM } from "../_runtime.mjs";
+import { r as __toESM } from "../_runtime.mjs";
 import { r as money } from "./catalog-B_7n6T4T.mjs";
 import { a as AccordionTrigger$1, g as require_jsx_runtime, i as AccordionItem$1, n as AccordionContent$1, r as AccordionHeader, t as Accordion$1 } from "../_libs/@radix-ui/react-accordion+[...].mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
